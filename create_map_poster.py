@@ -85,7 +85,8 @@ def load_theme(theme_name="feature_based"):
             "road_secondary": "#2A2A2A",
             "road_tertiary": "#3A3A3A",
             "road_residential": "#4A4A4A",
-            "road_default": "#3A3A3A"
+            "road_default": "#3A3A3A",
+            "railway": "#707070"
         }
     
     with open(theme_file, 'r') as f:
@@ -132,11 +133,17 @@ def create_gradient_fade(ax, color, location='bottom', zorder=10):
     ax.imshow(gradient, extent=[xlim[0], xlim[1], y_bottom, y_top], 
               aspect='auto', cmap=custom_cmap, zorder=zorder, origin='lower')
 
-MOTORWAY_TYPES = {'motorway', 'motorway_link'}
-PRIMARY_TYPES = {'trunk', 'trunk_link', 'primary', 'primary_link'}
-SECONDARY_TYPES = {'secondary', 'secondary_link'}
-TERTIARY_TYPES = {'tertiary', 'tertiary_link'}
-RESIDENTIAL_TYPES = {'residential', 'living_street', 'unclassified'}
+# MOTORWAY_TYPES = {'motorway', 'motorway_link'}
+# PRIMARY_TYPES = {'trunk', 'trunk_link', 'primary', 'primary_link'}
+# SECONDARY_TYPES = {'secondary', 'secondary_link'}
+# TERTIARY_TYPES = {'tertiary', 'tertiary_link'}
+# RESIDENTIAL_TYPES = {'residential', 'living_street', 'unclassified', 'service', 'footway'}
+
+MOTORWAY_TYPES = {'motorway', 'trunk', 'primary', 'secondary', 'tertiary'}
+PRIMARY_TYPES = {'motorway_link', 'secondary_link', 'tertiary_link', 'trunk_link', 'primary_link'}
+SECONDARY_TYPES = {'living_street', 'residential', 'service', 'footway', 'unclassified'}
+TERTIARY_TYPES = {'', ''}
+RESIDENTIAL_TYPES = {'', '', '', '', ''}
 
 def get_edge_styles_by_type(G):
     """
@@ -157,22 +164,28 @@ def get_edge_styles_by_type(G):
         # Assign style based on road type
         if highway in MOTORWAY_TYPES:
             color = THEME['road_motorway']
-            width = 1.2
+            width = 0.55
+            alpha = 0.8
         elif highway in PRIMARY_TYPES:
             color = THEME['road_primary']
-            width = 1.0
+            width = 0.25
+            alpha = 0.45
         elif highway in SECONDARY_TYPES:
             color = THEME['road_secondary']
-            width = 0.8
+            width = 0.25
+            alpha = 0.4
         elif highway in TERTIARY_TYPES:
             color = THEME['road_tertiary']
-            width = 0.6
+            width = 0.5
+            alpha = 0.55
         elif highway in RESIDENTIAL_TYPES:
             color = THEME['road_residential']
-            width = 0.4
+            width = 0.25
+            alpha = 0.3
         else:
             color = THEME['road_default']
-            width = 0.4
+            width = 0.25
+            alpha = 0.2
 
         edge_colors.append(color)
         edge_widths.append(width)
@@ -226,6 +239,14 @@ def create_poster(city, country, point, dist, output_file):
         except:
             parks = None
         pbar.update(1)
+
+        # 4. Fetch railroads
+        pbar.set_description("Downloading railroads")
+        try:
+            railroads = ox.features_from_point(point, tags={'railway': 'rail'}, dist=dist)
+        except:
+            railroads = None
+        pbar.update(1)
     
     print("✓ All data downloaded successfully!")
     
@@ -252,6 +273,11 @@ def create_poster(city, country, point, dist, output_file):
                 alpha=0.5
             )
     
+    # Layer 1.5: Railroads
+    if railroads is not None and not railroads.empty:
+        railroads.plot(ax=ax, color=THEME['railroad'], linewidth=0.3, linestyle='--', alpha=0.3, zorder=3)
+
+
     # Layer 2: Roads with hierarchy coloring
     print("Applying road hierarchy colors...")
     edge_colors, edge_widths = get_edge_styles_by_type(G)
