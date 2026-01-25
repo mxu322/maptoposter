@@ -428,7 +428,13 @@ def create_poster(city, country, point, dist, output_file, output_format, width=
     if parks is not None and not parks.empty:
         parks_polygons = parks[parks.geometry.type.isin(['Polygon', 'MultiPolygon'])]
         if not parks_polygons.empty:
-            parks_polygons.plot(ax=ax, facecolor=THEME['parks'], edgecolor='none', zorder=2)
+            parks_polygons.plot(
+                ax=ax,
+                facecolor=THEME['parks'],
+                edgecolor='none',
+                zorder=2,
+                alpha=0.5
+            )
     
     # Layer 1.5: Railroads
     if railroads is not None and not railroads.empty:
