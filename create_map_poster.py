@@ -187,17 +187,33 @@ def create_gradient_fade(ax, color, location='bottom', zorder=10):
     ax.imshow(gradient, extent=[xlim[0], xlim[1], y_bottom, y_top], 
               aspect='auto', cmap=custom_cmap, zorder=zorder, origin='lower')
 
-# MOTORWAY_TYPES = {'motorway', 'motorway_link'}
-# PRIMARY_TYPES = {'trunk', 'trunk_link', 'primary', 'primary_link'}
-# SECONDARY_TYPES = {'secondary', 'secondary_link'}
-# TERTIARY_TYPES = {'tertiary', 'tertiary_link'}
-# RESIDENTIAL_TYPES = {'residential', 'living_street', 'unclassified', 'service', 'footway'}
+def plot_polygons(layer, ax, facecolor, zorder, alpha=None):
+    """
+    Plot polygon and multipolygon geometries from a GeoDataFrame.
+    """
+    if layer is None or layer.empty:
+        return
 
-MOTORWAY_TYPES = {'motorway', 'trunk', 'primary', 'secondary', 'tertiary'}
-PRIMARY_TYPES = {'motorway_link', 'secondary_link', 'tertiary_link', 'trunk_link', 'primary_link'}
-SECONDARY_TYPES = {'living_street', 'residential', 'service', 'footway', 'unclassified'}
-TERTIARY_TYPES = {'', ''}
-RESIDENTIAL_TYPES = {'', '', '', '', ''}
+    polygons = layer[layer.geometry.type.isin(['Polygon', 'MultiPolygon'])]
+    if polygons.empty:
+        return
+
+    plot_kwargs = {
+        "ax": ax,
+        "facecolor": facecolor,
+        "edgecolor": "none",
+        "zorder": zorder,
+    }
+    if alpha is not None:
+        plot_kwargs["alpha"] = alpha
+
+    polygons.plot(**plot_kwargs)
+
+MOTORWAY_TYPES = {'motorway', 'motorway_link'}
+PRIMARY_TYPES = {'trunk', 'trunk_link', 'primary', 'primary_link'}
+SECONDARY_TYPES = {'secondary', 'secondary_link'}
+TERTIARY_TYPES = {'tertiary', 'tertiary_link'}
+RESIDENTIAL_TYPES = {'residential', 'living_street', 'unclassified'}
 
 def get_edge_styles_by_type(G):
     """
@@ -218,28 +234,22 @@ def get_edge_styles_by_type(G):
         # Assign style based on road type
         if highway in MOTORWAY_TYPES:
             color = THEME['road_motorway']
-            width = 0.55
-            alpha = 0.8
+            width = 1.2
         elif highway in PRIMARY_TYPES:
             color = THEME['road_primary']
-            width = 0.25
-            alpha = 0.45
+            width = 1.0
         elif highway in SECONDARY_TYPES:
             color = THEME['road_secondary']
-            width = 0.25
-            alpha = 0.4
+            width = 0.8
         elif highway in TERTIARY_TYPES:
             color = THEME['road_tertiary']
-            width = 0.5
-            alpha = 0.55
+            width = 0.6
         elif highway in RESIDENTIAL_TYPES:
             color = THEME['road_residential']
-            width = 0.25
-            alpha = 0.3
+            width = 0.4
         else:
             color = THEME['road_default']
-            width = 0.25
-            alpha = 0.2
+            width = 0.4
 
         edge_colors.append(color)
         edge_widths.append(width)
@@ -420,15 +430,9 @@ def create_poster(city, country, point, dist, output_file, output_format, width=
     G_proj = ox.project_graph(G)
     
     # 3. Plot Layers
-    # Layer 1: Polygons (filter to only plot polygon/multipolygon geometries, not points)
-    if water is not None and not water.empty:
-        water_polygons = water[water.geometry.type.isin(['Polygon', 'MultiPolygon'])]
-        if not water_polygons.empty:
-            water_polygons.plot(ax=ax, facecolor=THEME['water'], edgecolor='none', zorder=1)
-    if parks is not None and not parks.empty:
-        parks_polygons = parks[parks.geometry.type.isin(['Polygon', 'MultiPolygon'])]
-        if not parks_polygons.empty:
-            parks_polygons.plot(ax=ax, facecolor=THEME['parks'], edgecolor='none', zorder=2)
+    # Layer 1: Polygons
+    plot_polygons(water, ax, facecolor=THEME['water'], zorder=1)
+    plot_polygons(parks, ax, facecolor=THEME['parks'], zorder=2, alpha=0.45)
     
     # Layer 1.5: Railroads
     if railroads is not None and not railroads.empty:
@@ -437,12 +441,8 @@ def create_poster(city, country, point, dist, output_file, output_format, width=
 
     # Layer 2: Roads with hierarchy coloring
     print("Applying road hierarchy colors...")
-    edge_colors = get_edge_colors_by_type(G_proj)
-    edge_widths = get_edge_widths_by_type(G_proj)
-
-    # Determine cropping limits to maintain the poster aspect ratio
-    crop_xlim, crop_ylim = get_crop_limits(G_proj, point, fig, compensated_dist)
-    # Plot the projected graph and then apply the cropped limits
+    edge_colors, edge_widths = get_edge_styles_by_type(G)
+    
     ox.plot_graph(
         G_proj, ax=ax, bgcolor=THEME['bg'],
         node_size=0,
@@ -450,9 +450,9 @@ def create_poster(city, country, point, dist, output_file, output_format, width=
         edge_linewidth=edge_widths,
         show=False, close=False
     )
-    ax.set_aspect('equal', adjustable='box')
-    ax.set_xlim(crop_xlim)
-    ax.set_ylim(crop_ylim)
+    for collection in ax.collections:
+        if isinstance(collection, LineCollection):
+            collection.set_zorder(3)
     
     # Layer 3: Gradients (Top and Bottom)
     create_gradient_fade(ax, THEME['gradient_color'], location='bottom', zorder=10)
