@@ -209,11 +209,17 @@ def plot_polygons(layer, ax, facecolor, zorder, alpha=None):
 
     polygons.plot(**plot_kwargs)
 
-MOTORWAY_TYPES = {'motorway', 'motorway_link'}
-PRIMARY_TYPES = {'trunk', 'trunk_link', 'primary', 'primary_link'}
-SECONDARY_TYPES = {'secondary', 'secondary_link'}
-TERTIARY_TYPES = {'tertiary', 'tertiary_link'}
-RESIDENTIAL_TYPES = {'residential', 'living_street', 'unclassified'}
+# MOTORWAY_TYPES = {'motorway', 'motorway_link'}
+# PRIMARY_TYPES = {'trunk', 'trunk_link', 'primary', 'primary_link'}
+# SECONDARY_TYPES = {'secondary', 'secondary_link'}
+# TERTIARY_TYPES = {'tertiary', 'tertiary_link'}
+# RESIDENTIAL_TYPES = {'residential', 'living_street', 'unclassified'}
+
+MOTORWAY_TYPES = {'motorway', 'trunk', 'primary', 'secondary', 'tertiary'}
+PRIMARY_TYPES = {'motorway_link', 'secondary_link', 'tertiary_link', 'trunk_link', 'primary_link'}
+SECONDARY_TYPES = {'living_street', 'residential', 'service', 'footway', 'unclassified'}
+TERTIARY_TYPES = {'', ''}
+RESIDENTIAL_TYPES = {'', '', '', '', ''}
 
 def get_edge_styles_by_type(G):
     """
